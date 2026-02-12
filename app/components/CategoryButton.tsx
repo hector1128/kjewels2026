@@ -1,7 +1,8 @@
-export default function CategoryButton({label}:{label: string}) {
+import Link from "next/link"
+export default function CategoryButton({label, href}:{label: string, href: string}) {
     return (
-        <button className="border-2 border-black p-10 hover:bg-black hover:text-white transition-colors cursor-pointer">
+        <Link href={href} className="border-2 border-black p-10 hover:bg-black hover:text-white transition-colors cursor-pointer">
             {label}
-        </button>
+        </Link>
     )
 }
