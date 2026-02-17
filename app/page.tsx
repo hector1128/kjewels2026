@@ -1,4 +1,6 @@
 import CategoryButton from "./components/catButton";
+import NavBar from "./components/navBar";
+import Footer from "./components/footer";
 
 export default function Home() {
   const categories = [
@@ -10,7 +12,7 @@ export default function Home() {
 ];
   
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
+    <main className="min-h-screen bg-[#fdfbf7] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-50/50 via-[#fdfbf7] to-blue-50/30 selection:bg-blue-100 selection:text-blue-900">
       {/* Header */}
       <header className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between gap-4 bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-amber-100">
@@ -72,6 +74,7 @@ export default function Home() {
 
       {/* Footer accent */}
       <div className="h-2 bg-gradient-to-r from-blue-600 via-amber-500 to-blue-600" />
+      <Footer />
     </main>
   );
 }

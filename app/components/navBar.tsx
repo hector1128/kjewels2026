@@ -1,5 +1,15 @@
 export default function NavBar() {
     return(
-        <div>Nav Bar</div>
+        <div>
+            <button>
+                KJewels
+            </button>
+            <button>
+                Login
+            </button>
+            <button>
+                
+            </button>
+        </div>
     )
 }
