@@ -12,7 +12,7 @@ export default function Home() {
 ];
   
   return (
-    <main className="min-h-screen bg-[#fdfbf7] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-50/50 via-[#fdfbf7] to-blue-50/30 selection:bg-blue-100 selection:text-blue-900">
+    <main className="min-h-screen">
       {/* Header */}
       <header className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between gap-4 bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-amber-100">
