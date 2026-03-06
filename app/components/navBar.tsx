@@ -29,7 +29,7 @@ export default function Navbar() {
             <Link href="/#about" className="hover:text-primary transition-colors">
               About Us
             </Link>
-            <Link href="/#shop" className="hover:text-primary transition-colors">
+            <Link href="/shop" className="hover:text-primary transition-colors">
               Shop
             </Link>
           </div>
@@ -67,7 +67,7 @@ export default function Navbar() {
             About Us
           </Link>
           <Link 
-            href="/#shop" 
+            href="/shop" 
             className="hover:text-primary transition-colors"
             onClick={() => setIsMenuOpen(false)} // Closes menu when clicked
           >
