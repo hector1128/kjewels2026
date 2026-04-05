@@ -1,12 +1,20 @@
 "use client";
  
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Filter, ChevronDown, X, ShoppingBag, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
  
-// 1. UPDATED TYPE: Added optional fields for variations
+// 1. UPDATED TYPES: Added Variant tracking
+type ProductVariant = {
+  id: string | number;
+  product_id: string | number;
+  size: string | null;
+  width: string | null;
+  stock: number;
+};
+
 type Product = {
   id: string | number;
   name: string;
@@ -15,16 +23,13 @@ type Product = {
   material: string;
   gender: string;
   image_url: string;
-  available_sizes?: (string | number)[]; // e.g., ["20\"", "22\""]
-  available_widths?: string[]; // e.g., ["6mm", "8mm"]
+  variants: ProductVariant[]; // The new array coming from your Supabase join
 };
  
 const GENDER_OPTIONS = ['Feminine', 'Masculine', 'Unisex'];
 const CATEGORY_OPTIONS = ['Necklaces', 'Earrings', 'Rings', 'Bracelets', 'Other'];
 const MATERIAL_OPTIONS = ['Gold', 'Silver', 'Other'];
 const PRICE_OPTIONS = ['Any Price', 'Under $25', '$25 - $50', 'Over $50'];
-// Default Ring Sizes
-const DEFAULT_RING_SIZES = [5, 6, 7, 8, 9, 10];
  
 export default function ShopGrid({ initialProducts }: { initialProducts: Product[] }) {
   // 1. FILTER & SORT STATE
@@ -38,12 +43,28 @@ export default function ShopGrid({ initialProducts }: { initialProducts: Product
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [quickAddProduct, setQuickAddProduct] = useState<Product | null>(null);
 
-  // 3. PRODUCT VARIATION STATES (For the Quick Add Drawer)
+  // 3. PRODUCT VARIATION STATES
   const [quantity, setQuantity] = useState<number>(1);
-  const [selectedSize, setSelectedSize] = useState<string | number>("");
+  const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedWidth, setSelectedWidth] = useState<string>("");
  
-  // 4. TOGGLE LOGIC
+  // 4. DERIVE AVAILABLE OPTIONS FROM VARIANTS
+  // We use useMemo so this only recalculates when the selected product changes
+  const availableSizes = useMemo(() => {
+    if (!quickAddProduct?.variants) return [];
+    // Extract unique sizes that aren't null
+    const sizes = quickAddProduct.variants.map(v => v.size).filter(Boolean) as string[];
+    return Array.from(new Set(sizes));
+  }, [quickAddProduct]);
+
+  const availableWidths = useMemo(() => {
+    if (!quickAddProduct?.variants) return [];
+    // Extract unique widths that aren't null
+    const widths = quickAddProduct.variants.map(v => v.width).filter(Boolean) as string[];
+    return Array.from(new Set(widths));
+  }, [quickAddProduct]);
+ 
+  // 5. TOGGLE LOGIC
   const toggleGender = (gender: string) => {
     setSelectedGenders(prev =>
       prev.includes(gender) ? prev.filter(g => g !== gender) : [...prev, gender]
@@ -62,7 +83,6 @@ export default function ShopGrid({ initialProducts }: { initialProducts: Product
     );
   };
 
-  // Helper function to handle opening drawer & resetting states
   const handleOpenQuickAdd = (product: Product) => {
     setQuickAddProduct(product);
     setQuantity(1);
@@ -70,7 +90,7 @@ export default function ShopGrid({ initialProducts }: { initialProducts: Product
     setSelectedWidth("");
   };
  
-  // 5. THE CHECKER (Filter + Sort)
+  // 6. THE CHECKER (Filter + Sort)
   const sortedAndFilteredProducts = initialProducts
     .filter(product => {
       const matchesGender =
@@ -94,7 +114,7 @@ export default function ShopGrid({ initialProducts }: { initialProducts: Product
       return 0;
     });
  
-  // 6. REUSABLE FILTER UI
+  // 7. REUSABLE FILTER UI
   const FilterContent = () => (
     <div className="space-y-10">
       <div>
@@ -271,68 +291,66 @@ export default function ShopGrid({ initialProducts }: { initialProducts: Product
               
               <div className="space-y-6">
                 
-                {/* RING SIZE SELECTION */}
-                {quickAddProduct.category === 'Rings' && (
+                {/* DYNAMIC SIZE SELECTION (Rings or Bracelets) */}
+                {availableSizes.length > 0 && (
                   <div>
                     <span className="text-xs font-bold uppercase tracking-widest block mb-3">Size</span>
                     <div className="flex flex-wrap gap-2">
-                      {(quickAddProduct.available_sizes || DEFAULT_RING_SIZES).map(size => (
-                        <button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          className={`w-10 h-10 flex items-center justify-center text-sm border transition-colors rounded-sm
-                            ${selectedSize === size 
-                              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-gray-900 dark:border-white' 
-                              : 'border-gray-300 dark:border-gray-600 hover:border-gray-900 dark:hover:border-white'
-                            }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
+                      {availableSizes.map(size => {
+                        // Check if this specific size is out of stock across all widths
+                        const isOutOfStock = !quickAddProduct.variants.some(v => v.size === size && v.stock > 0);
+                        
+                        return (
+                          <button
+                            key={size}
+                            onClick={() => !isOutOfStock && setSelectedSize(size)}
+                            disabled={isOutOfStock}
+                            className={`px-4 py-2 min-w-[40px] flex items-center justify-center text-sm border transition-colors rounded-sm
+                              ${selectedSize === size 
+                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-gray-900 dark:border-white' 
+                                : isOutOfStock 
+                                  ? 'border-gray-200 text-gray-300 dark:border-gray-800 dark:text-gray-600 cursor-not-allowed bg-gray-50 dark:bg-gray-900 line-through'
+                                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-900 dark:hover:border-white'
+                              }`}
+                          >
+                            {size}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* BRACELET SIZE SELECTION (Only if product has sizes defined in DB) */}
-                {quickAddProduct.category === 'Bracelets' && quickAddProduct.gender === 'Masculine' && quickAddProduct.available_sizes && (
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-widest block mb-3">Size</span>
-                    <div className="flex flex-wrap gap-2">
-                      {quickAddProduct.available_sizes.map(size => (
-                        <button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          className={`px-4 py-2 text-sm font-medium border transition-colors rounded-sm
-                            ${selectedSize === size 
-                              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-gray-900 dark:border-white' 
-                              : 'border-gray-300 dark:border-gray-600 hover:border-gray-900 dark:hover:border-white'
-                            }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* BRACELET WIDTH SELECTION (Only if product has widths defined in DB) */}
-                {quickAddProduct.category === 'Bracelets' && quickAddProduct.gender === 'Masculine' && quickAddProduct.available_widths && (
+                {/* DYNAMIC WIDTH SELECTION (Usually Bracelets) */}
+                {availableWidths.length > 0 && (
                   <div>
                     <span className="text-xs font-bold uppercase tracking-widest block mb-3">Width</span>
                     <div className="flex flex-wrap gap-2">
-                      {quickAddProduct.available_widths.map(width => (
-                        <button
-                          key={width}
-                          onClick={() => setSelectedWidth(width)}
-                          className={`px-4 py-2 text-sm font-medium border transition-colors rounded-sm
-                            ${selectedWidth === width 
-                              ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-gray-900 dark:border-white' 
-                              : 'border-gray-300 dark:border-gray-600 hover:border-gray-900 dark:hover:border-white'
-                            }`}
-                        >
-                          {width}
-                        </button>
-                      ))}
+                      {availableWidths.map(width => {
+                        // Check if this specific width is out of stock (respecting selected size if applicable)
+                        const isOutOfStock = !quickAddProduct.variants.some(v => 
+                          v.width === width && 
+                          (selectedSize ? v.size === selectedSize : true) && 
+                          v.stock > 0
+                        );
+
+                        return (
+                          <button
+                            key={width}
+                            onClick={() => !isOutOfStock && setSelectedWidth(width)}
+                            disabled={isOutOfStock}
+                            className={`px-4 py-2 text-sm font-medium border transition-colors rounded-sm
+                              ${selectedWidth === width 
+                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 border-gray-900 dark:border-white' 
+                                : isOutOfStock
+                                  ? 'border-gray-200 text-gray-300 dark:border-gray-800 dark:text-gray-600 cursor-not-allowed bg-gray-50 dark:bg-gray-900 line-through'
+                                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-900 dark:hover:border-white'
+                              }`}
+                          >
+                            {width}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -366,12 +384,26 @@ export default function ShopGrid({ initialProducts }: { initialProducts: Product
           <div className="pt-8 mt-auto shrink-0">
             <Button
               onClick={() => {
+                // Determine the specific variant ID chosen
+                const selectedVariant = quickAddProduct?.variants.find(v => 
+                  (availableSizes.length === 0 || v.size === selectedSize) &&
+                  (availableWidths.length === 0 || v.width === selectedWidth)
+                );
+
+                if (!selectedVariant && (availableSizes.length > 0 || availableWidths.length > 0)) {
+                  alert("Please select all options before adding to cart.");
+                  return;
+                }
+
                 console.log("Added to cart:", {
-                  product: quickAddProduct?.name,
+                  product_id: quickAddProduct?.id,
+                  variant_id: selectedVariant?.id,
+                  name: quickAddProduct?.name,
                   quantity: quantity,
                   size: selectedSize || "N/A",
                   width: selectedWidth || "N/A"
                 });
+                
                 setQuickAddProduct(null);
               }}
               className="w-full bg-primary hover:bg-primary/90 text-white font-bold tracking-widest uppercase text-xs py-6 rounded-none flex items-center justify-center gap-2"

@@ -11,7 +11,7 @@ export default async function ShopPage() {
   // 1. Fetch the data directly from your Supabase 'products' table
   const { data: products, error } = await supabase
     .from('products')
-    .select('*')
+    .select('*, variants:product_variants(*)')
     .order('created_at', { ascending: false });
 
   if (error) {
